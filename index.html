@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>AudioModem</title>
+    <style type="text/css" media="all">
+        button {
+            border: none;
+            background: hsl(128, 50%, 40%);
+            color: #fff;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: hsl(128, 50%, 45%);
+        }
+
+        button,
+        input,
+        textarea {
+            border-radius: 6px;
+            margin: 8px 0;
+            padding: 12px 24px;
+        }
+
+        input,
+        textarea {
+            border: 1px solid #ccc;
+            display: block;
+        }
+
+        fieldset {
+            padding: 0;
+            border: none;
+        }
+
+        .gr {
+            display: flex;
+        }
+
+        .gr>fieldset {
+            min-width: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="init" type="button">Init</button>
+    <div class="gr">
+        <fieldset>
+            <legend>Modulator</legend>
+            <textarea name="input" id="input" rows="8" cols="40">This is a test text.</textarea>
+            <button id="send" type="button">Send</button>
+        </fieldset>
+        <fieldset>
+            <legend>Demodulator</legend>
+            <textarea name="output" id="output" rows="8" cols="40"></textarea>
+        </fieldset>
+    </div>
+    <script type="module" src="./main.js"></script>
+</body>
+
+</html>
