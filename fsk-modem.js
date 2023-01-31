@@ -1,12 +1,15 @@
 import GainedOscillator from './gained-oscillator.js'
 import PitchDetector from './pitch-detector.js'
 
-const DUR = 0.2;
+const DUR = 3;
 
 const SYNC_INTERVAL = DUR / 4 * 1000;
 
-const F_MULTIPLIER = 8;
-const F_ADD = 1024;
+const F_MULTIPLIER = 16;
+const F_ADD = 10000;
+
+const SYNC_START = 0xff;
+const SYNC_END = 0x01;
 
 class FSKModulator {
     constructor(ctx) {
@@ -26,7 +29,7 @@ class FSKModulator {
     sendText(text) {
         console.log(`sending: ${text}`);
 
-        text = `\xff\x01${text}`;
+        text = [SYNC_START, SYNC_END].map(v => String.fromCharCode(v)).join('') + text;
 
         const START_TIME = this.ctx.currentTime;
 
@@ -37,9 +40,6 @@ class FSKModulator {
 }
 
 class FSKDemodulator {
-    SYNC_START = 0xff;
-    SYNC_END = 0x01;
-
     constructor(ctx, inputStream, onRecv) {
         this.ctx = ctx;
         this.onRecv = onRecv;
@@ -50,12 +50,12 @@ class FSKDemodulator {
 
         this.pitchDetector = new PitchDetector();
         this.analyser = ctx.createAnalyser();
-        this.analyser.fftSize = 4096;
+        this.analyser.fftSize = 2048;
 
         this.buffer = new Float32Array(this.analyser.frequencyBinCount);
         const input = ctx.createMediaStreamSource(inputStream);
 
-        const from = F_ADD / 2;
+        /* const from = F_ADD / 2;
         const to = F_ADD + 256 * F_MULTIPLIER;
         const geometricMean = Math.sqrt(from * to);
 
@@ -64,8 +64,8 @@ class FSKDemodulator {
         filter.frequency.value = geometricMean;
         filter.Q.value = geometricMean / (to - from);
 
-        input.connect(filter);
-        filter.connect(this.analyser);
+        input.connect(filter); */
+        input.connect(this.analyser);
     }
 
     run() {
@@ -99,7 +99,7 @@ class FSKDemodulator {
     sync = () => {
         const code = this.getCode();
 
-        if (!this.syncStarted && code == this.SYNC_START) {
+        if (!this.syncStarted && code == SYNC_START) {
             this.syncStart();
             return;
         }
@@ -108,7 +108,7 @@ class FSKDemodulator {
             if (code) console.log(code);
         }
 
-        if (this.syncStarted && code == this.SYNC_END) {
+        if (this.syncStarted && code == SYNC_END) {
             this.syncEnd();
         }
     }
@@ -127,15 +127,16 @@ class FSKDemodulator {
 
     getCode() {
         this.analyser.getFloatTimeDomainData(this.buffer);
-        var f = this.pitchDetector.autoCorrelate(this.buffer, this.ctx.sampleRate);
+        const f = this.pitchDetector.autoCorrelate(this.buffer, this.ctx.sampleRate);
+        console.log(f);
         if (f >= 0) {
-            return +((f - F_ADD) / F_MULTIPLIER).toFixed();
+            return Math.round((f - F_ADD) / F_MULTIPLIER);
         }
         return 0;
     }
 }
 
-export  {
+export {
     FSKModulator,
     FSKDemodulator
 };
