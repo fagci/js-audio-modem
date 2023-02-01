@@ -1,15 +1,11 @@
 import GainedOscillator from './gained-oscillator.js'
-import PitchDetector from './pitch-detector.js'
 
-const DUR = 3;
+const DUR = 0.1;
 
-const SYNC_INTERVAL = DUR / 4 * 1000;
+const CLOCK_INTERVAL = DUR / 4 * 1000;
 
 const F_MULTIPLIER = 16;
-const F_ADD = 10000;
-
-const SYNC_START = 0xff;
-const SYNC_END = 0x01;
+const F_ADD = 16000;
 
 class FSKModulator {
     constructor(ctx) {
@@ -19,7 +15,6 @@ class FSKModulator {
         for (let i = 0; i < 256; i++) {
             this.oscillators.push(new GainedOscillator(ctx, F_ADD + i * F_MULTIPLIER));
         }
-
     }
 
     textToByteArray(text) {
@@ -29,109 +24,95 @@ class FSKModulator {
     sendText(text) {
         console.log(`sending: ${text}`);
 
-        text = [SYNC_START, SYNC_END].map(v => String.fromCharCode(v)).join('') + text;
-
         const START_TIME = this.ctx.currentTime;
 
         this.textToByteArray(text).forEach((byte, i) => {
-            this.oscillators[byte].emit(START_TIME + i * DUR, DUR);
+            this.oscillators[byte].emit(START_TIME + 2 * i * DUR, DUR);
+            this.oscillators[0].emit(START_TIME + (2 * i + 1) * DUR, DUR);
         });
     }
 }
 
 class FSKDemodulator {
-    constructor(ctx, inputStream, onRecv) {
+    constructor(ctx, inputStream, onRecv, onFFTUpdate = () => { }) {
         this.ctx = ctx;
         this.onRecv = onRecv;
+        this.onFFTUpdate = onFFTUpdate;
 
-        this.recving = false;
-        this.syncing = false;
-        this.syncStarted = false;
+        this.recvInterval = false;
 
-        this.pitchDetector = new PitchDetector();
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = 2048;
+
+        this.freqs = [];
+        for (let i = 0; i < 256; i++) {
+            this.freqs.push(i * F_MULTIPLIER + F_ADD);
+        }
 
         this.buffer = new Float32Array(this.analyser.frequencyBinCount);
         const input = ctx.createMediaStreamSource(inputStream);
 
-        /* const from = F_ADD / 2;
-        const to = F_ADD + 256 * F_MULTIPLIER;
-        const geometricMean = Math.sqrt(from * to);
-
         const filter = ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.value = geometricMean;
-        filter.Q.value = geometricMean / (to - from);
+        filter.frequency.value = F_ADD + 128 * F_MULTIPLIER;
+        filter.gain.value = 25;
 
-        input.connect(filter); */
-        input.connect(this.analyser);
+        input.connect(filter);
+        filter.connect(this.analyser);
     }
 
     run() {
-        this.runSync();
-    }
-
-    runSync() {
-        clearInterval(this.recving);
-        this.recving = false;
-        this.syncStarted = false;
-        this.syncing = setInterval(this.sync, SYNC_INTERVAL);
+        setInterval(this.clock, CLOCK_INTERVAL);
     }
 
     runRecv() {
-        clearInterval(this.syncing);
-        this.syncing = false;
-        this.syncStarted = false;
-        this.recving = setInterval(this.recv, DUR * 1000);
+        this.recvInterval = setInterval(this.recv, DUR * 1000);
     }
 
-    syncStart() {
-        console.log('syncing...');
-        this.syncStarted = true;
-    }
-
-    syncEnd() {
-        console.log('synced.');
-        this.runRecv();
-    }
-
-    sync = () => {
+    clock = () => {
         const code = this.getCode();
 
-        if (!this.syncStarted && code == SYNC_START) {
-            this.syncStart();
-            return;
+        // TODO: check for needeed sequence
+        if (this.lastCode == 0) {
+            if (code) this.onRecv(String.fromCharCode(code));
         }
-
-        if (this.syncStarted) {
-            if (code) console.log(code);
-        }
-
-        if (this.syncStarted && code == SYNC_END) {
-            this.syncEnd();
-        }
+        this.lastCode = code;
     }
 
-    recv = () => {
-        const code = this.getCode();
+    getKeyByValue(object, value) {
+        return Object.keys(object).find(key => object[key] === value);
+    }
 
-        if (code) {
-            this.onRecv(String.fromCharCode(code))
-            return;
-        }
+    getFrequency() {
+        // TODO: refactor
+        const buf = this.buffer;
+        this.analyser.getFloatFrequencyData(buf);
+        this.onFFTUpdate(buf);
+        const filteredFreqValues = {};
+        this.freqs.forEach(f => {
+            const i = Math.round(this.f2i(f));
+            filteredFreqValues[f] = this.buffer[i];
+        });
+        // const len = buf.length;
+        const maxValue = Math.max(...Object.values(filteredFreqValues));
+        // const midValue = buf.reduce((s, v) => s + v, 0) / len;
+        if (maxValue <= -90) return 0;
+        console.log(maxValue, this.getKeyByValue(filteredFreqValues, maxValue));
+        return this.getKeyByValue(filteredFreqValues, maxValue);
+    }
 
-        console.log('out of sync');
-        this.runSync();
+    i2f(i) {
+        return i * this.ctx.sampleRate / (this.buffer.length * 2);
+    }
+
+    f2i(f) {
+        return f * (this.buffer.length * 2) / this.ctx.sampleRate;
     }
 
     getCode() {
-        this.analyser.getFloatTimeDomainData(this.buffer);
-        const f = this.pitchDetector.autoCorrelate(this.buffer, this.ctx.sampleRate);
-        console.log(f);
-        if (f >= 0) {
-            return Math.round((f - F_ADD) / F_MULTIPLIER);
-        }
+        const f = this.getFrequency();
+        const isFrequencyExact = Math.abs((f | 0) - f) < F_MULTIPLIER / 4;
+        if (f > 0 && isFrequencyExact) return Math.round((f - F_ADD) / F_MULTIPLIER);
         return 0;
     }
 }
