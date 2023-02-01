@@ -17,6 +17,7 @@ const numberOfBars = w;
 let updateBuffer;
 
 
+
 function aggregate(data) {
     const aggregated = new Float32Array(numberOfBars);
     const bucketSize = Math.floor(data.length / numberOfBars);
@@ -61,7 +62,7 @@ function render() {
         .data(aggregate(updateBuffer))
         .join("rect")
         .attr("class", "bar")
-        .attr("x", (d, i) => xScale(i))
+        .attr("x", (_, i) => xScale(i))
         .attr("width", () => w / numberOfBars)
         .attr("y", (d) => h - yScale(d))
         .attr("height", d => {
@@ -71,7 +72,7 @@ function render() {
 }
 
 async function onInitClick() {
-    ctx = new window.AudioContext();
+    ctx = new AudioContext();
     const inputStream = await getInputStream();
 
     modulator = new FSKModulator(ctx);
@@ -85,7 +86,18 @@ async function onInitClick() {
     yScale = d3.scaleLinear()
         .range([0, h])
         .domain([-128, 0]);
-    console.log(w, h);
+
+    const xScaleHz = d3.scaleLinear()
+        .range([0, w])
+        .domain([0, ctx.sampleRate / 2]);
+
+    const xAxis = d3
+        .axisBottom()
+        .scale(xScaleHz)
+        .ticks(5)
+        .tickFormat(d => d / 1000 + "K");
+
+    freqGraph.append("g").call(xAxis)
 
     requestAnimationFrame(render);
 }
