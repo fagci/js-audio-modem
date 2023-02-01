@@ -76,6 +76,7 @@ async function onInitClick() {
 
     modulator = new FSKModulator(ctx);
     demodulator = new FSKDemodulator(ctx, inputStream, v => $outputField.val($outputField.val() + v), onFFTUpdate);
+    demodulator.run();
 
     xScale = d3.scaleLinear()
         .range([0, w])
@@ -83,10 +84,9 @@ async function onInitClick() {
 
     yScale = d3.scaleLinear()
         .range([0, h])
-        .domain([demodulator.analyser.minDecibels, demodulator.analyser.maxDecibels]);
+        .domain([-128, 0]);
     console.log(w, h);
 
-    demodulator.run();
     requestAnimationFrame(render);
 }
 

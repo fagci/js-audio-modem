@@ -1,0 +1,50 @@
+button {
+    border: none;
+    background: hsl(128, 50%, 40%);
+    color: #fff;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+button:hover {
+    background: hsl(128, 50%, 45%);
+}
+
+button,
+input,
+textarea {
+    border-radius: 6px;
+    margin: 8px 0;
+    padding: 12px 24px;
+}
+
+input,
+textarea {
+    border: 1px solid #ccc;
+    display: block;
+}
+
+fieldset {
+    padding: 0;
+    border: none;
+}
+
+.gr {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.gr>fieldset {
+    min-width: 0;
+}
+
+svg {
+    width: 300px;
+    height: 128px;
+    background: #ccc;
+    border: 1px solid;
+}
+.bar {
+    fill: steelblue;
+}
+
