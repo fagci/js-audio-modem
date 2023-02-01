@@ -38,7 +38,7 @@ class FSKDemodulator {
         this.recvInterval = false;
 
         this.analyser = ctx.createAnalyser();
-        this.analyser.fftSize = 8192;
+        this.analyser.fftSize = 4096;
 
         this.buffer = new Float32Array(this.analyser.frequencyBinCount);
         this.freqs = Array(256).fill().map((_, i) => i * F_MULTIPLIER + F_ADD);
