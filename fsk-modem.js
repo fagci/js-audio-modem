@@ -5,7 +5,7 @@ const DUR = 0.1;
 const CLOCK_INTERVAL = DUR / 4 * 1000;
 
 const F_MULTIPLIER = 16;
-const F_ADD = 16000;
+const F_ADD = 17000;
 
 class FSKModulator {
     constructor(ctx) {
@@ -42,7 +42,7 @@ class FSKDemodulator {
         this.recvInterval = false;
 
         this.analyser = ctx.createAnalyser();
-        this.analyser.fftSize = 2048;
+        this.analyser.fftSize = 4096;
 
         this.freqs = [];
         for (let i = 0; i < 256; i++) {
