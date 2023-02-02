@@ -1,22 +1,17 @@
-const DUR = 0.1;
-
-const CLOCK_INTERVAL = DUR / 8 * 1000;
-
-const F_MULTIPLIER = 16;
-const F_ADD = 17000;
+const OPTIONS = {
+    fBase: 17000,
+    fMul: 16,
+    rate: 10
+};
 
 class FSKModulator {
     constructor(ctx) {
         this.ctx = ctx;
         this.oscillators = [];
 
-        const options = {
-            sampleRate: this.ctx.sampleRate,
-            fBase: F_ADD,
-            fMul: F_MULTIPLIER,
-            rate: 1 / DUR
-        };
-        this.osc = new AudioWorkletNode(this.ctx, "generator", { processorOptions: options });
+        this.osc = new AudioWorkletNode(this.ctx, "generator", {
+            processorOptions: { ...OPTIONS, sampleRate: this.ctx.sampleRate }
+        });
         this.osc.connect(this.ctx.destination);
     }
 
@@ -38,7 +33,7 @@ class FSKDemodulator {
         this.analyser.fftSize = 4096;
 
         this.buffer = new Float32Array(this.analyser.frequencyBinCount);
-        this.freqs = Array(256).fill().map((_, i) => i * F_MULTIPLIER + F_ADD);
+        this.freqs = Array(256).fill().map((_, i) => i * OPTIONS.fMul + OPTIONS.fBase);
 
         const input = ctx.createMediaStreamSource(inputStream);
 
@@ -46,11 +41,11 @@ class FSKDemodulator {
     }
 
     run() {
-        setInterval(this.clock, CLOCK_INTERVAL);
+        setInterval(this.clock, 0.25 / OPTIONS.rate);
     }
 
     runRecv() {
-        this.recvInterval = setInterval(this.recv, DUR * 1000);
+        this.recvInterval = setInterval(this.recv, 1000 / OPTIONS.rate);
     }
 
     clock = () => {
@@ -90,7 +85,7 @@ class FSKDemodulator {
 
     getCode() {
         const f = this.getFrequency();
-        if (f > 0) return Math.round((f - F_ADD) / F_MULTIPLIER);
+        if (f > 0) return Math.round((f - OPTIONS.fBase) / OPTIONS.fMul);
         return 0;
     }
 }
