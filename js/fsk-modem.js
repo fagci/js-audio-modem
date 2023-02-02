@@ -26,6 +26,12 @@ class FSKDemodulator {
         this.ctx = ctx;
         this.onRecv = onRecv;
         this.onFFTUpdate = onFFTUpdate;
+        const processor = new AudioWorkletNode(this.ctx, "pitch-processor");
+        processor.port.onmessage = ev => {
+            console.log(ev.data.n, ev.data.f);
+        }
+
+
 
         this.recvInterval = false;
 
@@ -37,7 +43,8 @@ class FSKDemodulator {
 
         const input = ctx.createMediaStreamSource(inputStream);
 
-        input.connect(this.analyser);
+        // input.connect(this.analyser);
+        input.connect(processor);
     }
 
     run() {

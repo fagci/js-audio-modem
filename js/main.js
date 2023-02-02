@@ -74,6 +74,7 @@ function render() {
 async function onInitClick() {
     ctx = new AudioContext();
     ctx.audioWorklet.addModule('./js/generator.js');
+    ctx.audioWorklet.addModule('./js/pitch-processor.js');
     const inputStream = await getInputStream();
 
     modulator = new FSKModulator(ctx);
@@ -100,7 +101,7 @@ async function onInitClick() {
 
     freqGraph.append("g").call(xAxis)
 
-    requestAnimationFrame(render);
+    // requestAnimationFrame(render);
 }
 
 $sendBtn.on('click', onSendClick);
