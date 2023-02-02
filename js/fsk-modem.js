@@ -62,9 +62,10 @@ class FSKDemodulator {
         // TODO: refactor
         this.analyser.getFloatFrequencyData(this.buffer);
         this.onFFTUpdate(this.buffer);
-        const filteredFreqValues = this.freqs.map(f => this.freqPower(f));
+        const filteredFreqValues = this.freqs.map(f => 20*Math.log10(128+this.freqPower(f)));
+
         const maxValue = Math.max(...filteredFreqValues);
-        if (maxValue <= -90) return 0;
+        if (maxValue <= 10) return 0;
         const freqIndex = filteredFreqValues.indexOf(maxValue);
         console.log(freqIndex);
         return this.freqs[freqIndex];
