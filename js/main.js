@@ -73,6 +73,7 @@ function render() {
 
 async function onInitClick() {
     ctx = new AudioContext();
+    ctx.audioWorklet.addModule('./js/generator.js');
     const inputStream = await getInputStream();
 
     modulator = new FSKModulator(ctx);

@@ -1,5 +1,3 @@
-import GainedOscillator from './gained-oscillator.js'
-
 const DUR = 0.1;
 
 const CLOCK_INTERVAL = DUR / 8 * 1000;
@@ -12,20 +10,19 @@ class FSKModulator {
         this.ctx = ctx;
         this.oscillators = [];
 
-        for (let i = 0; i < 256; i++) {
-            this.oscillators.push(new GainedOscillator(ctx, F_ADD + i * F_MULTIPLIER));
-        }
+        const options = {
+            sampleRate: this.ctx.sampleRate,
+            fBase: F_ADD,
+            fMul: F_MULTIPLIER,
+            rate: 1 / DUR
+        };
+        this.osc = new AudioWorkletNode(this.ctx, "generator", { processorOptions: options });
+        this.osc.connect(this.ctx.destination);
     }
 
     sendText(text) {
         console.log(`sending: ${text}`);
-
-        const START_TIME = this.ctx.currentTime;
-
-        (new TextEncoder()).encode(text).forEach((byte, i) => {
-            this.oscillators[byte].emit(START_TIME + 2 * i * DUR, DUR);
-            this.oscillators[0].emit(START_TIME + (2 * i + 1) * DUR, DUR);
-        });
+        this.osc.port.postMessage(text);
     }
 }
 
