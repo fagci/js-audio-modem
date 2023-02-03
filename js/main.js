@@ -71,22 +71,9 @@ function render() {
         });
 }
 
-async function onInitClick() {
-    ctx = new AudioContext();
-    ctx.audioWorklet.addModule('./js/generator.js');
-    const inputStream = await getInputStream();
-
-    modulator = new FSKModulator(ctx);
-    demodulator = new FSKDemodulator(ctx, inputStream, v => $outputField.val($outputField.val() + v), onFFTUpdate);
-    demodulator.run();
-
-    xScale = d3.scaleLinear()
-        .range([0, w])
-        .domain([0, numberOfBars]);
-
-    yScale = d3.scaleLinear()
-        .range([0, h])
-        .domain([-128, 0]);
+function runFFT() {
+    xScale = d3.scaleLinear().range([0, w]).domain([0, numberOfBars]);
+    yScale = d3.scaleLinear().range([0, h]).domain([0, 255]);
 
     const xScaleHz = d3.scaleLinear()
         .range([0, w])
@@ -101,6 +88,18 @@ async function onInitClick() {
     freqGraph.append("g").call(xAxis)
 
     requestAnimationFrame(render);
+}
+
+async function onInitClick() {
+    ctx = new AudioContext();
+    ctx.audioWorklet.addModule('./js/generator.js');
+    const inputStream = await getInputStream();
+
+    modulator = new FSKModulator(ctx);
+    demodulator = new FSKDemodulator(ctx, inputStream, v => $outputField.val($outputField.val() + v), onFFTUpdate);
+    demodulator.run();
+
+    runFFT();
 }
 
 $sendBtn.on('click', onSendClick);
