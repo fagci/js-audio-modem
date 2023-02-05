@@ -3,6 +3,7 @@ class GeneratorProcessor extends AudioWorkletProcessor {
     #sample = 0;
     #tick = 0;
     #f = 0;
+    #cf = 0;
 
     constructor(nodeOptions) {
         super();
@@ -35,7 +36,20 @@ class GeneratorProcessor extends AudioWorkletProcessor {
                     this.#sample = 0;
                     this.#tick++;
                 }
-                channel[i] = this.#sine(this.#f, this.#sample / sampleRate);
+                let t = this.#sample / sampleRate;
+                let v = this.#sine(this.#cf, t);
+                this.#cf = this.#f;
+                // sync phases
+                /* if (this.#f != this.#cf) {
+                    let vNew = this.#sine(this.#f, t);
+                    if (Math.abs(v - vNew) < 0.0001) {
+                        console.log(this.#sample, v, vNew);
+                        this.#cf = this.#f;
+                        v = vNew;
+                    }
+                } */
+                channel[i] = v;
+
                 this.#sample++;
             }
         })

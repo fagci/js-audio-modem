@@ -92,7 +92,7 @@ function runFFT() {
 
 async function onInitClick() {
     ctx = new AudioContext();
-    ctx.audioWorklet.addModule('./js/generator.js');
+    ctx.audioWorklet.addModule('./js/generator.js?_=' + (+new Date()));
     const inputStream = await getInputStream();
 
     modulator = new FSKModulator(ctx);

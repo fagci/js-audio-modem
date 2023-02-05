@@ -1,5 +1,5 @@
 const OPTIONS = {
-    fBase: 17000,
+    fBase: 15000,
     fMul: 16,
     rate: 10
 };
@@ -29,13 +29,27 @@ class FSKDemodulator {
 
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = 4096;
+        this.analyser.minDecibels = -130;
 
         this.buffer = new Uint8Array(this.analyser.frequencyBinCount);
-        this.freqs = Array(256).fill().map((_, i) => i * OPTIONS.fMul + OPTIONS.fBase);
 
-        const input = ctx.createMediaStreamSource(inputStream);
+        const source = ctx.createMediaStreamSource(inputStream);
 
-        input.connect(this.analyser);
+        // sharp bandpass filter
+        const hpFilter = ctx.createBiquadFilter();
+        const lpFilter = ctx.createBiquadFilter();
+
+        hpFilter.type = 'highpass';
+        lpFilter.type = 'lowpass';
+
+        hpFilter.frequency.value = OPTIONS.fBase - OPTIONS.fMul;
+        lpFilter.frequency.value = OPTIONS.fBase + OPTIONS.fMul * 256;
+
+        hpFilter.gain.value = lpFilter.gain.value = -10;
+
+        source.connect(hpFilter);
+        hpFilter.connect(lpFilter);
+        lpFilter.connect(this.analyser);
     }
 
     run() {
@@ -43,30 +57,26 @@ class FSKDemodulator {
     }
 
     clock = () => {
+        this.updateFFT()
+
         const code = this.getCode();
 
         // TODO: check for needeed sequence
-        if (this.lastCode == 0) {
-            if (code) this.onRecv(String.fromCharCode(code));
+        if (this.lastCode == 0 && code) {
+            this.onRecv(String.fromCharCode(code));
         }
         this.lastCode = code;
     }
 
-    getFrequency() {
-        // TODO: refactor
+    updateFFT() {
         this.analyser.getByteFrequencyData(this.buffer);
         this.onFFTUpdate(this.buffer);
-        const filteredFreqValues = this.freqs.map(f => this.freqPower(f));
-
-        const maxValue = Math.max(...filteredFreqValues);
-        const freqIndex = filteredFreqValues.indexOf(maxValue);
-
-        return this.freqs[freqIndex];
     }
 
-    freqPower(f) {
-        const i = Math.round(this.f2i(f));
-        return this.buffer[i];
+    getFrequency() {
+        const peakValue = Math.max(...this.buffer);
+        const peakIndex = this.buffer.indexOf(peakValue);
+        return this.i2f(peakIndex);
     }
 
     i2f(i) {
@@ -79,8 +89,10 @@ class FSKDemodulator {
 
     getCode() {
         const f = this.getFrequency();
-        if (f >= OPTIONS.fBase && f <= OPTIONS.fBase + OPTIONS.fMul * 255) return Math.round((f - OPTIONS.fBase) / OPTIONS.fMul);
-        return 0;
+        const codeProposal = (f - OPTIONS.fBase) / OPTIONS.fMul;
+        const code = Math.round(codeProposal);
+        if (f > 0 && Math.abs(codeProposal - code) < 0.35) return code;
+        return undefined;
     }
 }
 
