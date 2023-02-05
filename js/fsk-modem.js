@@ -1,7 +1,7 @@
 const OPTIONS = {
-    fBase: 14000,
-    fMul: 22,
-    rate: 10,
+    fBase: 16000,
+    fMul: 16,
+    rate: 6, // codes per second
     syncPhases: true,
     fftSize: 4096,
 };
@@ -11,11 +11,9 @@ class FSKModulator {
         this.ctx = ctx;
         this.oscillators = [];
 
-        console.log('sample rate:', this.ctx.sampleRate);
+        const processorOptions = { ...OPTIONS, sampleRate: this.ctx.sampleRate };
 
-        this.osc = new AudioWorkletNode(this.ctx, "generator", {
-            processorOptions: { ...OPTIONS, sampleRate: this.ctx.sampleRate }
-        });
+        this.osc = new AudioWorkletNode(this.ctx, "generator", { processorOptions });
         this.osc.connect(this.ctx.destination);
     }
 
@@ -33,32 +31,23 @@ class FSKDemodulator {
 
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = OPTIONS.fftSize;
-        this.analyser.minDecibels = -130;
-        this.analyser.maxDecibels = 0;
-
-        console.log('analyser', this.analyser);
 
         this.buffer = new Uint8Array(this.analyser.frequencyBinCount);
 
         const source = ctx.createMediaStreamSource(inputStream);
 
-        // sharp bandpass filter
         const hpFilter = ctx.createBiquadFilter();
-        const lpFilter = ctx.createBiquadFilter();
 
         hpFilter.type = 'highpass';
-        lpFilter.type = 'lowpass';
 
         hpFilter.frequency.value = OPTIONS.fBase - OPTIONS.fMul;
-        lpFilter.frequency.value = OPTIONS.fBase + OPTIONS.fMul * 256;
 
         source.connect(hpFilter);
-        hpFilter.connect(lpFilter);
-        lpFilter.connect(this.analyser);
+        hpFilter.connect(this.analyser);
     }
 
     run() {
-        setInterval(this.clock);
+        setInterval(this.clock, 0.01);
     }
 
     clock = () => {
