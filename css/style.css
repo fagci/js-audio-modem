@@ -67,4 +67,6 @@ textarea, svg {
 .bar, .axis text {
     fill: #8c8;
 }
-
+.debug {
+    overflow: hidden;
+}
