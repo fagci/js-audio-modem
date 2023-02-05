@@ -16,18 +16,27 @@ const h = $freqGraph.height();
 const numberOfBars = w;
 let updateBuffer;
 
-
-
 function aggregate(data) {
-    const aggregated = new Float32Array(numberOfBars);
-    const bucketSize = Math.floor(data.length / numberOfBars);
+    const dLen = data.length;
+    const scaleX = numberOfBars / dLen;
+    const d = new Float32Array(numberOfBars);
 
-    for (let i = 0; i < numberOfBars; i++) {
-        const bucket = data.slice(i * bucketSize, (i + 1) * bucketSize);
-        aggregated[i] = bucket.reduce((s, d) => s + d, 0) / bucketSize;
+    const c = [];
+    for (let x = 0; x < numberOfBars; ++x) {
+        d[x] = 0;
+        c[x] = 0;
     }
 
-    return aggregated;
+    for (let i = 0; i < dLen; ++i) {
+        const xi = (i * scaleX) | 0;
+        d[xi] += data[i];
+        c[xi]++;
+    }
+
+    for (let x = 0; x < numberOfBars; ++x) {
+        d[x] = (d[x] / c[x]) | 0;
+    }
+    return d;
 }
 
 async function getInputStream() {
@@ -46,8 +55,50 @@ async function getInputStream() {
     return await navigator.mediaDevices.getUserMedia(constraints);
 }
 
+let recvBuffer = [];
+let textEncoder = new TextEncoder();
+let textDecoder = new TextDecoder();
+
 async function onSendClick() {
-    modulator.sendText($inputField.val());
+    const text = $inputField.val();
+    let data = [];
+    text.split('').map(c => {
+        data.push(0);
+        const encoded = textEncoder.encode(c);
+        encoded.forEach(v => {
+            data.push(2);
+            data.push(v);
+        });
+        data.push(1);
+    });
+
+    modulator.sendData(data);
+}
+
+let readyToGetAnotherCode = false;
+
+async function onRecv(v) {
+    if (v < 0 || v > 255) return;
+    console.log('recv:', Math.abs(v));
+    if (v === 0) {
+        recvBuffer.length = 0;
+        return;
+    }
+    if(v === 2) {
+        readyToGetAnotherCode = true;
+        return;
+    }
+    if (v === 1 && recvBuffer.length) {
+        console.log('decode', recvBuffer);
+        $outputField.val($outputField.val() + textDecoder.decode((new Uint8Array(recvBuffer)).buffer));
+        recvBuffer.length = 0;
+        return;
+    }
+    if(readyToGetAnotherCode) {
+        recvBuffer.push(v);
+        console.log('push', v);
+        readyToGetAnotherCode = false;
+    }
 }
 
 const freqGraph = d3.select('#freq_graph');
@@ -82,8 +133,8 @@ function runFFT() {
     const xAxis = d3
         .axisBottom()
         .scale(xScaleHz)
-        .ticks(5)
-        .tickFormat(d => d / 1000 + "K");
+        .ticks(ctx.sampleRate / 2 / 2000)
+        .tickFormat(d => d / 1000);
 
     freqGraph.append("g").call(xAxis)
 
@@ -96,7 +147,7 @@ async function onInitClick() {
     const inputStream = await getInputStream();
 
     modulator = new FSKModulator(ctx);
-    demodulator = new FSKDemodulator(ctx, inputStream, v => $outputField.val($outputField.val() + v), onFFTUpdate);
+    demodulator = new FSKDemodulator(ctx, inputStream, onRecv, onFFTUpdate);
     demodulator.run();
 
     runFFT();

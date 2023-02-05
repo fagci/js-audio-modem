@@ -1,7 +1,8 @@
 const OPTIONS = {
-    fBase: 15000,
+    fBase: 16000,
     fMul: 16,
-    rate: 10
+    rate: 10,
+    syncPhases: true,
 };
 
 class FSKModulator {
@@ -9,15 +10,17 @@ class FSKModulator {
         this.ctx = ctx;
         this.oscillators = [];
 
+        console.log('sample rate:', this.ctx.sampleRate);
+
         this.osc = new AudioWorkletNode(this.ctx, "generator", {
             processorOptions: { ...OPTIONS, sampleRate: this.ctx.sampleRate }
         });
         this.osc.connect(this.ctx.destination);
     }
 
-    sendText(text) {
-        console.log(`sending: ${text}`);
-        this.osc.port.postMessage(text);
+    sendData(data) {
+        console.log(`sending: ${data}`);
+        this.osc.port.postMessage(data);
     }
 }
 
@@ -30,6 +33,9 @@ class FSKDemodulator {
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = 4096;
         this.analyser.minDecibels = -130;
+        this.analyser.maxDecibels = 0;
+
+        console.log('analyser', this.analyser);
 
         this.buffer = new Uint8Array(this.analyser.frequencyBinCount);
 
@@ -45,8 +51,6 @@ class FSKDemodulator {
         hpFilter.frequency.value = OPTIONS.fBase - OPTIONS.fMul;
         lpFilter.frequency.value = OPTIONS.fBase + OPTIONS.fMul * 256;
 
-        hpFilter.gain.value = lpFilter.gain.value = -10;
-
         source.connect(hpFilter);
         hpFilter.connect(lpFilter);
         lpFilter.connect(this.analyser);
@@ -58,14 +62,7 @@ class FSKDemodulator {
 
     clock = () => {
         this.updateFFT()
-
-        const code = this.getCode();
-
-        // TODO: check for needeed sequence
-        if (this.lastCode == 0 && code) {
-            this.onRecv(String.fromCharCode(code));
-        }
-        this.lastCode = code;
+        this.onRecv(this.getCode());
     }
 
     updateFFT() {
@@ -90,9 +87,7 @@ class FSKDemodulator {
     getCode() {
         const f = this.getFrequency();
         const codeProposal = (f - OPTIONS.fBase) / OPTIONS.fMul;
-        const code = Math.round(codeProposal);
-        if (f > 0 && Math.abs(codeProposal - code) < 0.35) return code;
-        return undefined;
+        return Math.round(codeProposal);
     }
 }
 
