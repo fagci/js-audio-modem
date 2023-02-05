@@ -11,14 +11,14 @@
 <body>
     <button id="init" type="button">Init</button>
     <div class="gr">
-        <fieldset>
+        <fieldset disabled>
             <legend>Modulator</legend>
             <textarea name="input" id="input" rows="8" cols="40">⚡ Частотно-манипулированные сигналы FSK (frequency shift key) и FSK сигналы с непрерывной фазой CPFSK (continuous phase FSK)</textarea>
-            <button id="send" type="button">Send</button>
+            <button id="send" disabled type="button">Send</button>
         </fieldset>
-        <fieldset>
+        <fieldset disabled>
             <legend>Demodulator</legend>
-            <textarea name="output" id="output" rows="8" cols="40"></textarea>
+            <textarea readonly name="output" id="output" rows="8" cols="40"></textarea>
             <svg id="svg">
                 <g id="freq_graph"></g>
             </svg>

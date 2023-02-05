@@ -136,7 +136,9 @@ function runFFT() {
         .ticks(ctx.sampleRate / 2 / 2000)
         .tickFormat(d => d / 1000);
 
-    freqGraph.append("g").call(xAxis)
+    freqGraph.append("g")
+        .attr('class', 'axis')
+        .call(xAxis)
 
     requestAnimationFrame(render);
 }
@@ -151,6 +153,8 @@ async function onInitClick() {
     demodulator.run();
 
     runFFT();
+    $sendBtn.removeAttr('disabled');
+    $('fieldset').removeAttr('disabled');
 }
 
 $sendBtn.on('click', onSendClick);

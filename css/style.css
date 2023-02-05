@@ -1,3 +1,9 @@
+body {
+    background: #444;
+    color: #fff;
+    font-family: sans-serif;
+}
+
 button {
     border: none;
     background: hsl(128, 50%, 40%);
@@ -18,6 +24,11 @@ textarea {
     padding: 12px 24px;
 }
 
+button[disabled] {
+    background: #222;
+    pointer-events: none;
+}
+
 input,
 textarea {
     border: 1px solid #ccc;
@@ -26,6 +37,8 @@ textarea {
 
 fieldset {
     padding: 0;
+    margin-bottom: 0.75em;
+    margin-top: 0.75em;
     border: none;
 }
 
@@ -39,12 +52,19 @@ fieldset {
 }
 
 svg {
-    width: 300px;
+    width: 100%;
     height: 128px;
-    background: #ccc;
-    border: 1px solid;
+    background: #343;
 }
-.bar {
-    fill: steelblue;
+textarea, svg {
+    border: none;
+    border-radius: 6px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.35);
+}
+.axis line, .axis .domain {
+    stroke: #8c8;
+}
+.bar, .axis text {
+    fill: #8c8;
 }
 
