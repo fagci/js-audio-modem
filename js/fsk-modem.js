@@ -3,13 +3,12 @@ const OPTIONS = {
     fMul: 16,
     rate: 6, // codes per second
     syncPhases: true,
-    fftSize: 4096,
+    fftSize: 8192,
 };
 
 class FSKModulator {
     constructor(ctx) {
         this.ctx = ctx;
-        this.oscillators = [];
 
         const processorOptions = { ...OPTIONS, sampleRate: this.ctx.sampleRate };
 
@@ -31,6 +30,7 @@ class FSKDemodulator {
 
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = OPTIONS.fftSize;
+        this.analyser.smoothingTimeConstant = 0;
 
         this.buffer = new Uint8Array(this.analyser.frequencyBinCount);
 
@@ -47,7 +47,7 @@ class FSKDemodulator {
     }
 
     run() {
-        setInterval(this.clock, 0.01);
+        setInterval(this.clock);
     }
 
     clock = () => {
