@@ -1,7 +1,7 @@
 const OPTIONS = {
     fBase: 14000,
     fMul: 22,
-    rate: 5,
+    rate: 10,
     syncPhases: true,
     fftSize: 4096,
 };
