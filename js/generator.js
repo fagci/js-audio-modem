@@ -42,7 +42,7 @@ class GeneratorProcessor extends AudioWorkletProcessor {
                 }
 
                 this.#cf = this.#f;
-                channel[i] = this.#sine(this.#cf, t);
+                channel[i] = this.#f === 0 ? 0 : this.#sine(this.#cf, t);
 
                 this.#sample++;
             }

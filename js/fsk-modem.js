@@ -1,5 +1,5 @@
 const OPTIONS = {
-    fBase: 16000,
+    fBase: 10000,
     fMul: 16,
     rate: 10,
     syncPhases: true,
