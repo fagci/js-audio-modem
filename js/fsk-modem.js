@@ -1,6 +1,6 @@
 const OPTIONS = {
     fBase: 15000,
-    fMul: 16,
+    fMul: 22,
     rate: 6, // codes per second
     syncPhases: true,
     fftSize: 4096,
