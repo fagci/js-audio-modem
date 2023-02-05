@@ -1,8 +1,9 @@
 const OPTIONS = {
-    fBase: 10000,
-    fMul: 16,
-    rate: 10,
+    fBase: 14000,
+    fMul: 22,
+    rate: 5,
     syncPhases: true,
+    fftSize: 4096,
 };
 
 class FSKModulator {
@@ -31,7 +32,7 @@ class FSKDemodulator {
         this.onFFTUpdate = onFFTUpdate;
 
         this.analyser = ctx.createAnalyser();
-        this.analyser.fftSize = 4096;
+        this.analyser.fftSize = OPTIONS.fftSize;
         this.analyser.minDecibels = -130;
         this.analyser.maxDecibels = 0;
 
@@ -57,7 +58,7 @@ class FSKDemodulator {
     }
 
     run() {
-        setInterval(this.clock, 0.25 / OPTIONS.rate);
+        setInterval(this.clock);
     }
 
     clock = () => {

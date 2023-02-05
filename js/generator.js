@@ -32,7 +32,6 @@ class GeneratorProcessor extends AudioWorkletProcessor {
             for (let i = 0; i < channel.length; i++) {
                 if (this.#sample % samplesPerTick === 0) {
                     this.onNextTick();
-                    if (!this.#cf) this.#cf = this.#f;
                     this.#sample = 0;
                 }
                 let t = this.#sample / sampleRate;
