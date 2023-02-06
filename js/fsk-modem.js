@@ -34,7 +34,7 @@ class FSKDemodulator {
         this.analyser.minDecibels = -125;
         // this.analyser.maxDecibels = 0;
 
-        this.buffer = new Uint8Array(this.analyser.frequencyBinCount);
+        this.buffer = new Float32Array(this.analyser.frequencyBinCount);
 
         const source = ctx.createMediaStreamSource(inputStream);
 
@@ -58,7 +58,7 @@ class FSKDemodulator {
     }
 
     updateFFT() {
-        this.analyser.getByteFrequencyData(this.buffer);
+        this.analyser.getFloatFrequencyData(this.buffer);
         this.onFFTUpdate(this.buffer);
     }
 
@@ -69,11 +69,11 @@ class FSKDemodulator {
     }
 
     i2f(i) {
-        return i * this.ctx.sampleRate / (this.buffer.length * 2);
+        return i * this.ctx.sampleRate / this.analyser.fftSize;
     }
 
     f2i(f) {
-        return f * this.buffer.length * 2 / this.ctx.sampleRate;
+        return f * this.analyser.fftSize / this.ctx.sampleRate;
     }
 
     getCode() {

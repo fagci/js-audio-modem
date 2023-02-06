@@ -83,7 +83,7 @@ async function onRecv(v) {
     if (v < 0 || v > 255) return; // noise
     // 0 A 0 B 0
     // 0 A 0
-    if(v === 2) {
+    if (v === 2) {
         readyToGetAnotherCode = true;
         return;
     }
@@ -93,7 +93,7 @@ async function onRecv(v) {
         recvBuffer.length = 0;
         return;
     }
-    if(readyToGetAnotherCode) {
+    if (readyToGetAnotherCode) {
         recvBuffer.push(v);
         $debugPane.text(recvBuffer.join(', '))
         console.log('push', v);
@@ -109,6 +109,7 @@ function onFFTUpdate(data) {
 function render() {
     requestAnimationFrame(render);
     if (!updateBuffer) return;
+
     freqGraph.selectAll('rect.bar')
         .data(aggregate(updateBuffer))
         .join("rect")
@@ -124,7 +125,10 @@ function render() {
 
 function runFFT() {
     xScale = d3.scaleLinear().range([0, w]).domain([0, numberOfBars]);
-    yScale = d3.scaleLinear().range([0, h]).domain([0, 255]);
+    yScale = d3.scaleLinear().range([0, h]).domain([
+        demodulator.analyser.minDecibels,
+        demodulator.analyser.maxDecibels,
+    ]);
 
     const xScaleHz = d3.scaleLinear()
         .range([0, w])
