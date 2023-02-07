@@ -31,8 +31,8 @@ class FSKDemodulator {
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = OPTIONS.fftSize;
         this.analyser.smoothingTimeConstant = 0;
-        this.analyser.minDecibels = -125;
-        // this.analyser.maxDecibels = 0;
+        this.analyser.minDecibels = -140;
+        this.analyser.maxDecibels = 0;
 
         this.buffer = new Float32Array(this.analyser.frequencyBinCount);
 

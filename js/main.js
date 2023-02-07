@@ -64,7 +64,6 @@ async function onSendClick() {
     const text = $inputField.val();
     let data = [];
     text.split('').map(c => {
-        // data.push(0);
         const encoded = textEncoder.encode(c);
         data.push(0);
         encoded.forEach(v => {
@@ -81,14 +80,11 @@ let readyToGetAnotherCode = false;
 
 async function onRecv(v) {
     if (v < 0 || v > 255) return; // noise
-    // 0 A 0 B 0
-    // 0 A 0
     if (v === 2) {
         readyToGetAnotherCode = true;
         return;
     }
     if (v === 0 && recvBuffer.length) {
-        console.log('decode', recvBuffer);
         $outputField.val($outputField.val() + textDecoder.decode((new Uint8Array(recvBuffer)).buffer));
         recvBuffer.length = 0;
         return;
@@ -96,7 +92,6 @@ async function onRecv(v) {
     if (readyToGetAnotherCode) {
         recvBuffer.push(v);
         $debugPane.text(recvBuffer.join(', '))
-        console.log('push', v);
         readyToGetAnotherCode = false;
     }
 }
