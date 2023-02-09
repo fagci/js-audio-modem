@@ -18,16 +18,14 @@ const numberOfBars = w;
 let updateBuffer;
 
 Array.prototype.chunk = function(l) {
-    return new Array(Math.ceil(this.length / l))
-        .fill()
+    return Array(Math.ceil(this.length / l)).fill()
         .map((_, n) => this.slice(n * l, n * l + l));
 }
 
 function aggregate(data) {
-    const dLen = data.length;
-    return data.chunk(dLen / numberOfBars).map(v => {
-        return v.reduce((s, vv) => s + vv, 0) / v.length;
-    })
+    return data
+        .chunk(data.length / numberOfBars)
+        .map(b => b.reduce((s, v) => s + v) / b.length)
 }
 
 async function getInputStream() {
@@ -53,10 +51,9 @@ let textDecoder = new TextDecoder();
 async function onSendClick() {
     const text = $inputField.val();
     let data = [];
-    text.split('').map(c => {
-        const encoded = textEncoder.encode(c);
+    text.split('').forEach(c => {
         data.push(0);
-        encoded.forEach(v => {
+        textEncoder.encode(c).forEach(v => {
             data.push(2);
             data.push(v);
         });
