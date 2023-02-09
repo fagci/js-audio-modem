@@ -35,7 +35,7 @@ function aggregate(data) {
     }
 
     for (let x = 0; x < numberOfBars; ++x) {
-        d[x] = (d[x] / c[x]) | 0;
+        d[x] = d[x] / c[x];
     }
     return d;
 }
