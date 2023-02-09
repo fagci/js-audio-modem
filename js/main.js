@@ -17,15 +17,14 @@ const h = $freqGraph.height();
 const numberOfBars = w;
 let updateBuffer;
 
-Array.prototype.chunk = function(l) {
-    return Array(Math.ceil(this.length / l)).fill()
-        .map((_, n) => this.slice(n * l, n * l + l));
-}
-
 function aggregate(data) {
-    return data
-        .chunk(data.length / numberOfBars)
-        .map(b => b.reduce((s, v) => s + v) / b.length)
+    const binSize = data.length / numberOfBars;
+    return Array(numberOfBars)
+        .fill()
+        .map((_, i) => {
+            const b = data.slice(i * binSize, (i + 1) * binSize)
+            return b.reduce((s, v) => s + v) / b.length
+        })
 }
 
 async function getInputStream() {
