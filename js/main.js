@@ -17,27 +17,17 @@ const h = $freqGraph.height();
 const numberOfBars = w;
 let updateBuffer;
 
+Array.prototype.chunk = function(l) {
+    return new Array(Math.ceil(this.length / l))
+        .fill()
+        .map((_, n) => this.slice(n * l, n * l + l));
+}
+
 function aggregate(data) {
     const dLen = data.length;
-    const scaleX = numberOfBars / dLen;
-    const d = new Float32Array(numberOfBars);
-
-    const c = [];
-    for (let x = 0; x < numberOfBars; ++x) {
-        d[x] = 0;
-        c[x] = 0;
-    }
-
-    for (let i = 0; i < dLen; ++i) {
-        const xi = (i * scaleX) | 0;
-        d[xi] += data[i];
-        c[xi]++;
-    }
-
-    for (let x = 0; x < numberOfBars; ++x) {
-        d[x] = d[x] / c[x];
-    }
-    return d;
+    return data.chunk(dLen / numberOfBars).map(v => {
+        return v.reduce((s, vv) => s + vv, 0) / v.length;
+    })
 }
 
 async function getInputStream() {
