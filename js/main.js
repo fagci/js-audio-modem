@@ -1,8 +1,5 @@
 import { FSKModulator, FSKDemodulator } from './fsk-modem.js'
 
-let ctx;
-let modulator, demodulator;
-
 const $initBtn = $('#init');
 const $sendBtn = $('#send');
 const $inputField = $('#input');
@@ -10,12 +7,15 @@ const $outputField = $('#output');
 const $freqGraph = $('svg');
 const $debugPane = $('.debug');
 
-let xScale, yScale;
-
 const w = $freqGraph.width();
 const h = $freqGraph.height();
 const numberOfBars = w;
+
+let ctx;
+let modulator, demodulator;
+
 let updateBuffer;
+let xScale, yScale;
 
 function aggregate(data) {
     const binSize = data.length / numberOfBars;
@@ -44,11 +44,10 @@ async function getInputStream() {
 }
 
 let recvBuffer = [];
-let textEncoder = new TextEncoder();
-let textDecoder = new TextDecoder();
+const textDecoder = new TextDecoder();
 
-async function onSendClick() {
-    const text = $inputField.val();
+function encode(text) {
+    const textEncoder = new TextEncoder();
     let data = [];
     text.split('').forEach(c => {
         data.push(0);
@@ -58,8 +57,12 @@ async function onSendClick() {
         });
         data.push(0);
     });
+    return data;
+}
 
-    modulator.sendData(data);
+async function onSendClick() {
+    const text = $inputField.val();
+    modulator.sendData(encode(text));
 }
 
 let readyToGetAnotherCode = false;
