@@ -34,7 +34,6 @@ async function getInputStream() {
             echoCancellation: false,
             noiseSuppression: false,
             highpassFilter: false,
-            echoCancellation: false,
             sampleRate: 44100,
             channelCount: 1,
         }

@@ -36,7 +36,7 @@ class GeneratorProcessor extends AudioWorkletProcessor {
                 }
                 let t = this.#sample / sampleRate;
 
-                if (this.syncPhases && this.#f != this.#cf) {
+                if (this.syncPhases && this.#f !== this.#cf) {
                     this.#dPhi = this.#phi % (2.0 * Math.PI);
                 }
 
