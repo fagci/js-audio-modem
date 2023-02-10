@@ -35,7 +35,7 @@ async function getInputStream() {
             noiseSuppression: false,
             highpassFilter: false,
             echoCancellation: false,
-            sampleRate: 48000,
+            sampleRate: 44100,
             channelCount: 1,
         }
     };
@@ -132,7 +132,9 @@ function runFFT() {
 }
 
 async function onInitClick() {
-    ctx = new AudioContext();
+    ctx = new AudioContext({
+        sampleRate: 44100,
+    });
     await ctx.audioWorklet.addModule(window.location.href + '/js/generator.js?_=' + (+new Date()));
     const inputStream = await getInputStream();
 
