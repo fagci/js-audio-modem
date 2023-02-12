@@ -1,9 +1,9 @@
 const OPTIONS = {
-    fBase: 14500,
-    fMul: 32,
+    fBase: 18000,
+    fMul: 1000,
     rate: 8, // codes per second
     syncPhases: true,
-    fftSize: 2048*2,
+    fftSize: 2048 * 2,
 };
 
 class FSKModulator {
@@ -46,6 +46,15 @@ class FSKDemodulator {
 
         source.connect(hpFilter);
         hpFilter.connect(this.analyser);
+
+
+
+        const det = new AudioWorkletNode(this.ctx, "detector");
+        hpFilter.connect(det);
+        det.port.onmessage = (ev) => {
+            const codeProposal = (ev.data - OPTIONS.fBase) / OPTIONS.fMul;
+            console.log(ev.data, Math.round(codeProposal));
+        }
     }
 
     run() {

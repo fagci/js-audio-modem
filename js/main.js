@@ -45,12 +45,20 @@ async function getInputStream() {
 let recvBuffer = [];
 const textDecoder = new TextDecoder();
 
+function char2bits(s) {
+    return s.charCodeAt(0).toString(2).padStart(16, '0').split('').map(v => +v)
+}
+
+function bits2char(bits) {
+    return String.fromCharCode(parseInt(bits.join(''), 2))
+}
+
 function encode(text) {
     const textEncoder = new TextEncoder();
     let data = [];
     text.split('').forEach(c => {
         data.push(0);
-        textEncoder.encode(c).forEach(v => {
+        char2bits(c).forEach(v => {
             data.push(2);
             data.push(v);
         });
@@ -135,6 +143,7 @@ async function onInitClick() {
         sampleRate: 44100,
     });
     await ctx.audioWorklet.addModule(window.location.href + '/js/generator.js?_=' + (+new Date()));
+    await ctx.audioWorklet.addModule(window.location.href + '/js/detector.js?_=' + (+new Date()));
     const inputStream = await getInputStream();
 
     modulator = new FSKModulator(ctx);
