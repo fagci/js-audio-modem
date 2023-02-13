@@ -1,67 +1,39 @@
 class Detector extends AudioWorkletProcessor {
-    buffer;
-    bsize = 0;
-    silence = 0.001;
-    threshold = 0.1;
-    once = true;
+    buffer = new Float32Array(2048);
     count = 0;
     samprate = 44100;
 
-    static get parameterDescriptors() {
-        return [
-            { name: 'buffersize', defaultValue: 20, minValue: 1, maxValue: 1000 },
-            { name: 'silence', defaultValue: 0.01, minValue: 0.001, maxValue: 1 },
-            { name: 'threshold', defaultValue: 0.2, minValue: 0.001, maxValue: 1 },
-            { name: 'samprate', defaultValue: 44100, minValue: 1, maxValue: 1000000 },
-        ];
-    }
+    process(inputs) {
+        const input = inputs[0][1];
 
-    constructor() {
-        super();
-        console.log("pitcher worklet");
-    }
-
-    process(inputs,
-        outputs,
-        parameters) {
-
-        const input = inputs[0];
-        const output = outputs[0];
-        const left = input[0];
-        const right = input[1];
-        const lefto = output[0];
-        const righto = output[1];
-
-        if (this.once) {
-            this.once = false;
-            this.bsize = parameters.buffersize[0] * 128;
-            this.silence = parameters.silence[0];
-            this.threshold = parameters.threshold[0];
-            this.samprate = parameters.samprate[0];
-            this.buffer = new Float32Array(this.bsize);
-        }
-
-        for (let i = 0; i < 128; i++) {
-            var o = 0.5 * (left[i] + right[i]);
-            this.buffer[this.count++] = o;
-            lefto[i] = righto[i] = 0;
-        }
-
-        if (this.count >= this.bsize) {
-            // we have enough data
-            this.count = 0;
-            var f = this.autoCorrelate(this.buffer, this.samprate);
-            if (f > 0) {
-                this.port.postMessage(f);
+        if (this.count < this.buffer.length) {
+            for (let i = 0; i < input.length; i++) {
+                this.buffer[this.count++] = input[i];
             }
+            return true;
         }
+
+        // we have enough data
+        const f = this.autoCorrelate(this.buffer, this.samprate);
+        if (f > 0) {
+            console.log('f:', f, this.count);
+            // this.port.postMessage(f);
+        }
+        this.count = 0;
         return true;
     }
-    autoCorrelate(buf, sampleRate) {
-        // Implements the ACF2+ algorithm
-        var SIZE = buf.length;
-        var rms = 0;
 
+    // based on https://github.com/cwilso/PitchDetect/blob/main/js/pitchdetect.js
+    autoCorrelate(buf, sampleRate) {
+        var MIN_SAMPLES = 0;
+        var GOOD_ENOUGH_CORRELATION = 0.9;
+        var SIZE = buf.length;
+        var MAX_SAMPLES = Math.floor(SIZE / 2);
+        var best_offset = -1;
+        var best_correlation = 0;
+        var rms = 0;
+        var foundGoodCorrelation = false;
+        var correlations = new Array(MAX_SAMPLES);
         for (var i = 0; i < SIZE; i++) {
             var val = buf[i];
             rms += val * val;
@@ -69,37 +41,30 @@ class Detector extends AudioWorkletProcessor {
         rms = Math.sqrt(rms / SIZE);
         if (rms < 0.01) // not enough signal
             return -1;
-
-        var r1 = 0, r2 = SIZE - 1, thres = 0.2;
-        for (var i = 0; i < SIZE / 2; i++)
-            if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-        for (var i = 1; i < SIZE / 2; i++)
-            if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-
-        buf = buf.slice(r1, r2);
-        SIZE = buf.length;
-
-        var c = new Array(SIZE).fill(0);
-        for (var i = 0; i < SIZE; i++)
-            for (var j = 0; j < SIZE - i; j++)
-                c[i] = c[i] + buf[j] * buf[j + i];
-
-        var d = 0; while (c[d] > c[d + 1]) d++;
-        var maxval = -1, maxpos = -1;
-        for (var i = d; i < SIZE; i++) {
-            if (c[i] > maxval) {
-                maxval = c[i];
-                maxpos = i;
+        var lastCorrelation = 1;
+        for (var offset = MIN_SAMPLES; offset < MAX_SAMPLES; offset++) {
+            var correlation = 0;
+            for (var i = 0; i < MAX_SAMPLES; i++) {
+                correlation += Math.abs((buf[i]) - (buf[i + offset]));
             }
+            correlation = 1 - (correlation / MAX_SAMPLES);
+            correlations[offset] = correlation; // store it, for the tweaking we need to do below.
+            if ((correlation > GOOD_ENOUGH_CORRELATION) && (correlation > lastCorrelation)) {
+                foundGoodCorrelation = true;
+                if (correlation > best_correlation) {
+                    best_correlation = correlation;
+                    best_offset = offset;
+                }
+            } else if (foundGoodCorrelation) {
+                var shift = (correlations[best_offset + 1] - correlations[best_offset - 1]) / correlations[best_offset];
+                return sampleRate / (best_offset + (8 * shift));
+            }
+            lastCorrelation = correlation;
         }
-       var T0 = maxpos;
-
-        var x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-        var a = (x1 + x3 - 2 * x2) / 2;
-        var b = (x3 - x1) / 2;
-        if (a) T0 = T0 - b / (2 * a);
-
-        return sampleRate / T0;
+        if (best_correlation > 0.01) {
+            return sampleRate / best_offset;
+        }
+        return -1;
     }
 }
 
