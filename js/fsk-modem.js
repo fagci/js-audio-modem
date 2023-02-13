@@ -1,9 +1,8 @@
 const OPTIONS = {
-    fBase: 18000,
+    fBase: 15000,
     fMul: 1000,
-    rate: 8, // codes per second
-    syncPhases: true,
-    fftSize: 2048 * 2,
+    rate: 375, // codes per second
+    fftSize: 2048,
 };
 
 class FSKModulator {
@@ -11,6 +10,7 @@ class FSKModulator {
         this.ctx = ctx;
 
         const processorOptions = { ...OPTIONS, sampleRate: this.ctx.sampleRate };
+        console.log('sr:', processorOptions.sampleRate);
 
         this.osc = new AudioWorkletNode(this.ctx, "generator", { processorOptions });
         this.osc.connect(this.ctx.destination);
@@ -37,28 +37,18 @@ class FSKDemodulator {
         this.buffer = new Float32Array(this.analyser.frequencyBinCount);
 
         const source = ctx.createMediaStreamSource(inputStream);
-
-        const hpFilter = ctx.createBiquadFilter();
-
-        hpFilter.type = 'highpass';
-
-        hpFilter.frequency.value = OPTIONS.fBase - OPTIONS.fMul;
-
-        source.connect(hpFilter);
-        hpFilter.connect(this.analyser);
-
-
-
         const det = new AudioWorkletNode(this.ctx, "detector");
-        hpFilter.connect(det);
+        source.connect(det);
         det.port.onmessage = (ev) => {
-            const codeProposal = (ev.data - OPTIONS.fBase) / OPTIONS.fMul;
-            console.log(ev.data, Math.round(codeProposal));
+            const codeProposal = (ev.data - 3000) / 1500;
+            const code = Math.round(codeProposal);
+            // console.log(ev.data, code);
+            this.onRecv(code)
         }
     }
 
     run() {
-        setInterval(this.clock, 1000.0 / OPTIONS.rate / 20);
+        // setInterval(this.clock, 1000.0 / OPTIONS.rate / 20);
     }
 
     clock = () => {

@@ -34,7 +34,7 @@ async function getInputStream() {
             echoCancellation: false,
             noiseSuppression: false,
             highpassFilter: false,
-            sampleRate: 44100,
+            sampleRate: 48000,
             channelCount: 1,
         }
     };
@@ -43,7 +43,6 @@ async function getInputStream() {
 }
 
 let recvBuffer = [];
-const textDecoder = new TextDecoder();
 
 function char2bits(s) {
     return s.charCodeAt(0).toString(2).padStart(16, '0').split('').map(v => +v)
@@ -53,16 +52,20 @@ function bits2char(bits) {
     return String.fromCharCode(parseInt(bits.join(''), 2))
 }
 
+const SEND_LEN = 64;
+
+var ldpc = new LDPC({ n: SEND_LEN, k: 16, modulo: 2 });
+
+console.log(bits2char(ldpc.decode(ldpc.encode(char2bits('F')))))
+
 function encode(text) {
-    const textEncoder = new TextEncoder();
     let data = [];
     text.split('').forEach(c => {
-        data.push(0);
-        char2bits(c).forEach(v => {
-            data.push(2);
+        const tosend = ldpc.encode(char2bits(c));
+        console.log('send', tosend);
+        tosend.forEach(v => {
             data.push(v);
         });
-        data.push(0);
     });
     return data;
 }
@@ -72,23 +75,15 @@ async function onSendClick() {
     modulator.sendData(encode(text));
 }
 
-let readyToGetAnotherCode = false;
-
 async function onRecv(v) {
-    if (v < 0 || v > 255) return; // noise
-    if (v === 2) {
-        readyToGetAnotherCode = true;
-        return;
-    }
-    if (v === 0 && recvBuffer.length) {
-        $outputField.val($outputField.val() + textDecoder.decode((new Uint8Array(recvBuffer)).buffer));
+    if (v < 0 || v > 1) return; // noise
+    recvBuffer.push(v);
+    if (recvBuffer.length >= SEND_LEN) {
+        const recv = ldpc.decode(recvBuffer);
+        console.log('recv', recvBuffer);
+        $outputField.val($outputField.val() + bits2char(recv));
         recvBuffer.length = 0;
         return;
-    }
-    if (readyToGetAnotherCode) {
-        recvBuffer.push(v);
-        $debugPane.text(recvBuffer.join(', '))
-        readyToGetAnotherCode = false;
     }
 }
 

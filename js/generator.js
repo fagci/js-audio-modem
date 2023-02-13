@@ -1,58 +1,47 @@
 class GeneratorProcessor extends AudioWorkletProcessor {
     #message = [];
-    #sample = 0;
-    #f = 0;
-    #cf = 0;
-
-    #phi = 0;
-    #dPhi = 0;
 
     constructor(nodeOptions) {
         super();
         Object.assign(this, nodeOptions.processorOptions);
         this.port.onmessage = this.#messageProcessor.bind(this);
+        this.oscillators = [
+            this.osc(3000),
+            this.osc(4500),
+        ];
+    }
+
+    osc(f) {
+        const a = new Float32Array(128);
+        for (let i = 0; i < 128; i++) {
+            a[i] = this.#sine(f, i / sampleRate);
+        }
+        return a;
     }
 
     onNextTick() {
         const message = this.#message;
         if (!message.length) {
-            this.#f = 0;
+            this.oscillator = null;
             return;
         }
         const code = this.#message.shift();
-
-        this.#f = this.fBase + code * this.fMul;
+        this.oscillator = this.oscillators[code];
     }
 
     process(_, outputs) {
-        const samplesPerTick = this.sampleRate / this.rate;
-        const sampleRate = this.sampleRate;
+        const out = outputs[0][0];
 
-        outputs[0].forEach(channel => {
-            for (let i = 0; i < channel.length; i++) {
-                if (this.#sample % samplesPerTick === 0) {
-                    this.onNextTick();
-                    this.#sample = 0;
-                }
-                let t = this.#sample / sampleRate;
-
-                if (this.syncPhases && this.#f !== this.#cf) {
-                    this.#dPhi = this.#phi % (2.0 * Math.PI);
-                }
-
-                this.#cf = this.#f;
-                channel[i] = this.#f === 0 ? 0 : this.#sine(this.#cf, t);
-
-                this.#sample++;
-            }
-        })
+        for (let i = 0; i < 128; i++) {
+            out[i] = this.oscillator ? this.oscillator[i] : 0;
+        }
+        this.onNextTick();
 
         return true;
     }
 
-    #sine(frequency, time) {
-        this.#phi = frequency * Math.PI * 2 * time + this.#dPhi;
-        return Math.sin(this.#phi);
+    #sine(frequency, t) {
+        return Math.sin(frequency * Math.PI * 2 * t);
     }
 
     #messageProcessor(e) {
